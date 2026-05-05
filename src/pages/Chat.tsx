@@ -4,8 +4,17 @@ import { sendChatMessage, deleteSession } from '../api/client'
 import type { ChatMessage } from '../types'
 
 function getSessionId(): string {
-  // If coming from landing page with a role, always start a fresh session
   const params = new URLSearchParams(window.location.search)
+
+  // Returning from an OAuth redirect — restore the session_id the agent issued
+  // the auth link from so the conversation continues in the same session.
+  const fromOauth = params.get('session_id')
+  if (fromOauth) {
+    localStorage.setItem('technovation_session_id', fromOauth)
+    return fromOauth
+  }
+
+  // If coming from landing page with a role, always start a fresh session
   if (params.get('role')) {
     const newId = crypto.randomUUID()
     localStorage.setItem('technovation_session_id', newId)
@@ -81,8 +90,11 @@ function MessageBubble({ msg, sessionId }: { msg: ChatMessage; sessionId: string
         }
         if (isAuthUrl) {
           const label = cleanPart.includes('calcom') ? '🔗 Connect Cal.com' : '🔗 Connect Google'
+          // Same-tab navigation so OAuth redirects land back in this same chat
+          // tab. With target="_blank" the original tab never updates and the
+          // user perceives "the chat doesn't open."
           return (
-            <a key={i} href={href} target="_blank" rel="noopener noreferrer"
+            <a key={i} href={href}
               className="inline-block mt-2 px-4 py-2 text-white text-sm font-medium rounded-lg transition-colors"
               style={{ background: '#1565C0' }}>
               {label}
@@ -139,7 +151,7 @@ function MessageBubble({ msg, sessionId }: { msg: ChatMessage; sessionId: string
 }
 
 export default function Chat() {
-  const [searchParams] = useSearchParams()
+  const [searchParams, setSearchParams] = useSearchParams()
   const [sessionId] = useState(getSessionId)
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [input, setInput] = useState('')
@@ -182,7 +194,13 @@ export default function Chat() {
     if (initialized.current) return
     initialized.current = true
     const roleParam = searchParams.get('role')
-    if (roleParam === 'coach') send('I am a coach')
+    const calcomConnected = searchParams.get('calcom_connected') === '1'
+
+    if (calcomConnected) {
+      addMessage('agent', '✅ Cal.com account connected!')
+      setSearchParams({}, { replace: true })
+      send("I've connected my Cal.com account.")
+    } else if (roleParam === 'coach') send('I am a coach')
     else if (roleParam === 'participant') send('I am a participant')
   }, [])
 

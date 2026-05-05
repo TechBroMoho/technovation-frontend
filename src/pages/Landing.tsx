@@ -1,9 +1,19 @@
+import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 
 const API_URL = (import.meta.env.VITE_API_URL as string) || 'http://localhost:8000'
 
 export default function Landing() {
   const navigate = useNavigate()
+
+  // OAuth callbacks land here when the backend redirects to FRONTEND_URL with
+  // no /chat suffix. Forward to the chat UI, preserving query params.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('calcom_connected') || params.get('google_connected')) {
+      navigate(`/chat?${params.toString()}`, { replace: true })
+    }
+  }, [navigate])
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center px-4"
