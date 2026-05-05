@@ -52,12 +52,27 @@ function TypingIndicator() {
 function MessageBubble({ msg, sessionId }: { msg: ChatMessage; sessionId: string }) {
   const isUser = msg.role === 'user'
 
+  const parseMarkdown = (str: string, keyPrefix: number) => {
+    const parts: React.ReactNode[] = []
+    const mdRegex = /(\*\*(.+?)\*\*|\*(.+?)\*)/g
+    let last = 0
+    let match
+    let i = 0
+    while ((match = mdRegex.exec(str)) !== null) {
+      if (match.index > last) parts.push(<span key={`${keyPrefix}-t${i++}`}>{str.slice(last, match.index)}</span>)
+      if (match[0].startsWith('**')) parts.push(<strong key={`${keyPrefix}-b${i++}`}>{match[2]}</strong>)
+      else parts.push(<em key={`${keyPrefix}-i${i++}`}>{match[3]}</em>)
+      last = match.index + match[0].length
+    }
+    if (last < str.length) parts.push(<span key={`${keyPrefix}-t${i++}`}>{str.slice(last)}</span>)
+    return parts
+  }
+
   const renderContent = (text: string) => {
     const urlRegex = /(https?:\/\/[^\s]+)/g
-    const parts = text.split(urlRegex)
-    return parts.map((part, i) => {
+    const segments = text.split(urlRegex)
+    return segments.map((part, i) => {
       if (urlRegex.test(part)) {
-        // Strip trailing markdown punctuation (**, *, ., ,) that the LLM may append
         const cleanPart = part.replace(/[*_.,'";:!?)]+$/, '')
         const isAuthUrl = cleanPart.includes('/auth/')
         let href = cleanPart
@@ -81,7 +96,7 @@ function MessageBubble({ msg, sessionId }: { msg: ChatMessage; sessionId: string
           </a>
         )
       }
-      return <span key={i}>{part}</span>
+      return <span key={i}>{parseMarkdown(part, i)}</span>
     })
   }
 
@@ -103,7 +118,7 @@ function MessageBubble({ msg, sessionId }: { msg: ChatMessage; sessionId: string
         }}>
           {isUser ? 'You' : 'Assistant'}
         </div>
-        <div className="whitespace-pre-wrap" style={{
+        <div className="whitespace-pre-line" style={{
           padding: '9px 12px',
           borderRadius: 14,
           fontSize: 12.5,
@@ -218,54 +233,54 @@ export default function Chat() {
         {/* Messages */}
         <div className="flex-1 overflow-y-auto chat-scroll space-y-3 p-3"
           style={{ background: '#F9FAFB' }}>
-        {messages.length === 0 && !loading && (
-          <div className="h-full flex flex-col items-center justify-center gap-2" style={{ color: '#9ca3af' }}>
-            <p className="text-sm">Type a message to get started</p>
-          </div>
-        )}
-        {messages.map(msg => (
-          <MessageBubble key={msg.id} msg={msg} sessionId={sessionId} />
-        ))}
-        {loading && <TypingIndicator />}
-        {error && (
-          <div className="text-sm rounded-xl px-4 py-3" style={{ background: '#FEF2F2', border: '1px solid #FECACA', color: '#DC2626' }}>
-            {error}
-          </div>
-        )}
-        <div ref={bottomRef} />
-      </div>
+          {messages.length === 0 && !loading && (
+            <div className="h-full flex flex-col items-center justify-center gap-2" style={{ color: '#9ca3af' }}>
+              <p className="text-sm">Type a message to get started</p>
+            </div>
+          )}
+          {messages.map(msg => (
+            <MessageBubble key={msg.id} msg={msg} sessionId={sessionId} />
+          ))}
+          {loading && <TypingIndicator />}
+          {error && (
+            <div className="text-sm rounded-xl px-4 py-3" style={{ background: '#FEF2F2', border: '1px solid #FECACA', color: '#DC2626' }}>
+              {error}
+            </div>
+          )}
+          <div ref={bottomRef} />
+        </div>
 
-      {/* Input */}
-      <div className="shrink-0 flex gap-2 items-center px-3 py-2.5"
-        style={{ background: '#fff', borderTop: '1px solid #e8ecf2' }}>
-        <input
-          ref={inputRef}
-          value={input}
-          onChange={e => setInput(e.target.value)}
-          onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(input) } }}
-          placeholder="Type a message..."
-          disabled={loading}
-          className="flex-1 outline-none text-xs"
-          style={{
-            background: '#F9FAFB',
-            border: '1px solid #e2e8f0',
-            borderRadius: 20,
-            padding: '8px 14px',
-            color: '#374151',
-            fontFamily: 'Inter, sans-serif',
-          }}
-        />
-        <button
-          onClick={handleSubmit}
-          disabled={!input.trim() || loading}
-          className="flex items-center justify-center shrink-0 disabled:opacity-40 transition-opacity"
-          style={{ width: 30, height: 30, borderRadius: '50%', background: '#1565C0', border: 'none' }}
-        >
-          <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
-            <path d="M1.5 6.5h10M6.5 1.5l5 5-5 5" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-        </button>
-      </div>
+        {/* Input */}
+        <div className="shrink-0 flex gap-2 items-center px-3 py-2.5"
+          style={{ background: '#fff', borderTop: '1px solid #e8ecf2' }}>
+          <input
+            ref={inputRef}
+            value={input}
+            onChange={e => setInput(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(input) } }}
+            placeholder="Type a message..."
+            disabled={loading}
+            className="flex-1 outline-none text-xs"
+            style={{
+              background: '#F9FAFB',
+              border: '1px solid #e2e8f0',
+              borderRadius: 20,
+              padding: '8px 14px',
+              color: '#374151',
+              fontFamily: 'Inter, sans-serif',
+            }}
+          />
+          <button
+            onClick={handleSubmit}
+            disabled={!input.trim() || loading}
+            className="flex items-center justify-center shrink-0 disabled:opacity-40 transition-opacity"
+            style={{ width: 30, height: 30, borderRadius: '50%', background: '#1565C0', border: 'none' }}
+          >
+            <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+              <path d="M1.5 6.5h10M6.5 1.5l5 5-5 5" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </button>
+        </div>
 
       </div>{/* end chat card */}
 

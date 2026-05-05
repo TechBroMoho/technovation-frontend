@@ -13,12 +13,7 @@ export default function Landing() {
         {/* Logo + tagline */}
         <div className="text-center mb-7">
           <div className="flex items-center justify-center gap-2 mb-3">
-            <svg width="28" height="28" viewBox="0 0 36 36" fill="none">
-              <path d="M6 6 L6 22 L10 22 L10 10 L18 10 L18 6 Z" fill="#F59E0B" />
-              <rect x="10" y="14" width="20" height="3" rx="1" fill="#1565C0" />
-              <rect x="10" y="20" width="14" height="3" rx="1" fill="#1565C0" />
-              <rect x="10" y="26" width="8"  height="3" rx="1" fill="#1565C0" />
-            </svg>
+            <img src="/src/assets/logo.png" alt="Technovation" style={{ width: 52, height: 52, objectFit: 'contain', marginBottom: 6 }} />
             <span style={{ fontFamily: 'Nunito, sans-serif', fontWeight: 900, fontSize: 20, color: '#1565C0', letterSpacing: '-0.01em' }}>
               TECHNOVATION
             </span>
